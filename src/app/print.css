@@ -1,0 +1,104 @@
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: #fff !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm 10mm 15mm 10mm;
+    @bottom-center {
+      content: "MSS-v.1.0 | CodeTech | by Sachin's";
+      font-family: 'Inter', sans-serif;
+      font-size: 9pt;
+      color: #666;
+    }
+  }
+
+  /* Hide all non-essential elements */
+  .no-print,
+  .no-print *,
+  header.no-print,
+  hr.no-print,
+  div.no-print {
+    display: none !important;
+  }
+  
+  /* Guarantee the Actions column is hidden */
+  th.no-print, 
+  td.no-print {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #fff !important;
+  }
+
+  .printable-section {
+    page-break-inside: avoid;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* Style headers and inputs for clean text display */
+  div[class*="bg-gray-50"] {
+    background-color: transparent !important;
+  }
+
+  input,
+  .font-bold.text-lg,
+  .text-md.text-muted-foreground {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Section and Table styles for high density */
+  .printable-section > div:first-child {
+    padding: 2px 0 !important;
+    border-bottom: 1px solid #ccc !important;
+    margin-bottom: 5px !important;
+  }
+  
+  .printable-section .font-bold.text-lg {
+    font-size: 11pt !important;
+    color: #000 !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  
+  th, td {
+    border: 1px solid #ddd !important;
+    padding: 1mm !important; /* Extremely dense padding */
+    text-align: left !important;
+    font-size: 7pt !important; /* CAD-like font size */
+    word-break: break-word !important;
+  }
+  
+  th {
+    background-color: #f2f2f2 !important;
+    font-weight: bold !important;
+    color: #333 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  td input {
+    font-size: 7pt !important;
+  }
+}

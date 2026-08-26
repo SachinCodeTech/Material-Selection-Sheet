@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mssGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#057a9e" />
+      <stop offset="50%" stop-color="#045E7D" />
+      <stop offset="100%" stop-color="#023b4f" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFDF00" />
+      <stop offset="100%" stop-color="#F3C900" />
+    </linearGradient>
+    <filter id="glassShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded squircles for all OS / Android adaptive / iOS / Desktop -->
+  <rect width="512" height="512" rx="112" fill="url(#mssGrad)" />
+  
+  <!-- Subtle glass geometric overlays -->
+  <circle cx="420" cy="90" r="140" fill="#ffffff" fill-opacity="0.08" />
+  <circle cx="90" cy="420" r="160" fill="#000000" fill-opacity="0.15" />
+  
+  <!-- Central Glass Plate -->
+  <g filter="url(#glassShadow)">
+    <rect x="96" y="96" width="320" height="320" rx="36" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.4" stroke-width="4" />
+  </g>
+  
+  <!-- Architectural Layer Sheets / Material Grid Icon -->
+  <g transform="translate(144, 144)">
+    <!-- Sheet 1 Background -->
+    <rect x="24" y="8" width="176" height="208" rx="16" fill="#ffffff" fill-opacity="0.2" />
+    
+    <!-- Sheet 2 Main (White Glass) -->
+    <rect x="0" y="24" width="184" height="200" rx="16" fill="#ffffff" fill-opacity="0.92" stroke="#ffffff" stroke-width="2" />
+    
+    <!-- Header bar -->
+    <rect x="18" y="44" width="80" height="12" rx="4" fill="#045E7D" />
+    <rect x="106" y="44" width="60" height="12" rx="4" fill="url(#accentGrad)" />
+    
+    <!-- Table Grid Rows -->
+    <line x1="18" y1="76" x2="166" y2="76" stroke="#045E7D" stroke-opacity="0.2" stroke-width="2" />
+    <rect x="18" y="90" width="40" height="10" rx="3" fill="#045E7D" fill-opacity="0.6" />
+    <rect x="66" y="90" width="50" height="10" rx="3" fill="#045E7D" fill-opacity="0.4" />
+    <rect x="124" y="90" width="42" height="10" rx="3" fill="#045E7D" fill-opacity="0.8" />
+    
+    <line x1="18" y1="116" x2="166" y2="116" stroke="#045E7D" stroke-opacity="0.2" stroke-width="2" />
+    <rect x="18" y="130" width="55" height="10" rx="3" fill="#045E7D" fill-opacity="0.6" />
+    <rect x="81" y="130" width="35" height="10" rx="3" fill="#045E7D" fill-opacity="0.4" />
+    <rect x="124" y="130" width="42" height="10" rx="3" fill="#045E7D" fill-opacity="0.8" />
+
+    <line x1="18" y1="156" x2="166" y2="156" stroke="#045E7D" stroke-opacity="0.2" stroke-width="2" />
+    <rect x="18" y="170" width="45" height="10" rx="3" fill="#045E7D" fill-opacity="0.6" />
+    <rect x="71" y="170" width="45" height="10" rx="3" fill="#045E7D" fill-opacity="0.4" />
+    <rect x="124" y="170" width="42" height="10" rx="3" fill="url(#accentGrad)" />
+    
+    <line x1="18" y1="196" x2="166" y2="196" stroke="#045E7D" stroke-opacity="0.2" stroke-width="2" />
+  </g>
+</svg>

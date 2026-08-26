@@ -1,0 +1,7 @@
+{
+  "name": "Remix Material Selection Sheet",
+  "description": "Native standalone installable architectural material selection and specification software by CodeTech featuring high-resolution glassmorphism styling, multi-OS support, Gemini AI assistance, and vector PDF exports.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
