@@ -100,20 +100,11 @@ export default function ProjectSelectPage() {
     <div className="flex min-h-screen flex-col justify-between">
       {/* Frosted Glass Header */}
       <header className="w-full glass-header px-4 py-3 sm:px-8 flex items-center justify-between sticky top-0 z-30">
-        <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2 text-primary font-medium">
+        <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2 text-primary font-semibold">
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Login</span>
+          <span>Home</span>
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsInstallDialogOpen(true)}
-            className="hidden sm:inline-flex gap-1.5 text-xs bg-white/60 border-white/70 backdrop-blur-md hover:bg-white/90 shadow-sm"
-          >
-            <Download className="h-3.5 w-3.5 text-primary" />
-            <span>Install App</span>
-          </Button>
           <Badge variant="outline" className="glass-badge text-primary text-xs font-mono">
             User: {currentUser}
           </Badge>

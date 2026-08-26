@@ -19,21 +19,12 @@ export default function AboutPage() {
           onClick={() => router.push('/')}
           variant="ghost"
           size="sm"
-          className="gap-2 text-primary font-medium"
+          className="gap-2 text-primary font-semibold"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Home</span>
+          <span>Home</span>
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsInstallDialogOpen(true)}
-            className="hidden sm:inline-flex gap-1.5 text-xs bg-white/60 border-white/70 backdrop-blur-md hover:bg-white/90 shadow-sm"
-          >
-            <Download className="h-3.5 w-3.5 text-primary" />
-            <span>Install App</span>
-          </Button>
           <Badge variant="outline" className="glass-badge text-primary font-mono text-xs">
             v1.0.0 • Professional
           </Badge>

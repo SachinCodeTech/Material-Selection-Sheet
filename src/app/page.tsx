@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useLocalStorage from '@/hooks/use-local-storage';
+import type { Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ export default function HomePage() {
   const router = useRouter();
   const [storedUser, setStoredUser] = useLocalStorage<string | null>('currentUser', null);
   const [registeredUsers, setRegisteredUsers] = useLocalStorage<any>('registeredUsers', { 'User1': 'password' });
+  const [projects, setProjects] = useLocalStorage<Project[]>('projects', []);
   const [companyName] = useLocalStorage<string>('companyName', 'Your Company');
   
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -125,6 +127,72 @@ export default function HomePage() {
         toast({ title: 'Invalid password.', description: 'The password you entered is incorrect.', variant: 'destructive' });
       }, 500);
     }
+  };
+
+  const handleInstantDemo = () => {
+    setStoredUser('User1');
+    if (!registeredUsers['User1']) {
+      setRegisteredUsers({ ...registeredUsers, 'User1': 'password' });
+    }
+    
+    let sampleProjects = [...projects];
+    let defaultProj = sampleProjects.find(p => p.owner === 'User1' || !p.owner);
+    if (!defaultProj) {
+      defaultProj = {
+        id: crypto.randomUUID(),
+        name: '01',
+        companyName: 'Architectural Design Studio',
+        lastModified: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
+        owner: 'User1',
+        pageSize: 'A4',
+        sections: [
+          {
+            id: crypto.randomUUID(),
+            name: 'Section 1',
+            columns: ['UTILITY AREA', 'SURFACE AREA', 'SIZE (MM)', 'MODEL NAME', 'COMPANY'],
+            materials: [
+              {
+                id: crypto.randomUUID(),
+                'UTILITY AREA': 'Living Room Flooring',
+                'SURFACE AREA': 'Main Foyer & Lounge',
+                'SIZE (MM)': '1200 x 600',
+                'MODEL NAME': 'Statuary Marble Glazed Vitrified',
+                'COMPANY': 'Kajaria Ceramics',
+              },
+              {
+                id: crypto.randomUUID(),
+                'UTILITY AREA': 'Master Bathroom Wall',
+                'SURFACE AREA': 'Shower Cubicle & Vanity',
+                'SIZE (MM)': '600 x 300',
+                'MODEL NAME': 'Calacatta Gold Matt Ceramic',
+                'COMPANY': 'Somany Tiles',
+              },
+              {
+                id: crypto.randomUUID(),
+                'UTILITY AREA': 'Kitchen Platform & Dado',
+                'SURFACE AREA': 'Countertop & Splashback',
+                'SIZE (MM)': '3200 x 800',
+                'MODEL NAME': 'Jet Black Quartz Granite',
+                'COMPANY': 'Quantra Quartz',
+              },
+              {
+                id: crypto.randomUUID(),
+                'UTILITY AREA': 'Balcony Deck',
+                'SURFACE AREA': 'Outdoor Sitout Area',
+                'SIZE (MM)': '600 x 600',
+                'MODEL NAME': 'Teak Wood Texture Anti-Skid',
+                'COMPANY': 'Simpolo Ceramics',
+              },
+            ],
+          },
+        ],
+      };
+      sampleProjects.push(defaultProj);
+      setProjects(sampleProjects);
+    }
+    toast({ title: 'Welcome to Live Demo!', description: 'Loaded project workspace.' });
+    router.push(`/project/${defaultProj.id}`);
   };
 
   const handleRegister = (e: React.FormEvent) => {
@@ -535,24 +603,24 @@ export default function HomePage() {
               <div className="pt-1 flex flex-col sm:flex-row gap-3">
                 <Button
                   size="lg"
-                  className="flex-1 gap-2 font-semibold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground"
-                  onClick={() => {
-                    setView('login');
-                    setIsStartScreen(false);
-                  }}
+                  className="flex-1 gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground h-12"
+                  onClick={handleInstantDemo}
                 >
-                  <Play className="h-4 w-4 fill-current" />
-                  <span>Launch & Login</span>
+                  <Sparkles className="h-4 w-4" />
+                  <span>Try Live Demo</span>
                 </Button>
 
                 <Button
                   size="lg"
                   variant="outline"
-                  className="flex-1 gap-2 bg-white/70 border-white/80 backdrop-blur-md hover:bg-white shadow-sm"
-                  onClick={() => setIsInstallDialogOpen(true)}
+                  className="flex-1 gap-2 bg-white/80 border-slate-300 hover:bg-white shadow-sm font-semibold h-12"
+                  onClick={() => {
+                    setView('login');
+                    setIsStartScreen(false);
+                  }}
                 >
-                  <Download className="h-4 w-4 text-primary" />
-                  <span>Install Application</span>
+                  <Play className="h-4 w-4 fill-current text-primary" />
+                  <span>Launch & Login</span>
                 </Button>
               </div>
             </div>

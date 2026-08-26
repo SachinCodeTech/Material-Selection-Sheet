@@ -142,16 +142,7 @@ export default function AdminPage() {
           <h1 className="text-base sm:text-lg font-extrabold text-foreground">Admin Dashboard</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsInstallDialogOpen(true)}
-            className="hidden sm:inline-flex gap-1.5 text-xs bg-white/60 border-white/70 backdrop-blur-md shadow-sm"
-          >
-            <Download className="h-3.5 w-3.5 text-primary" />
-            <span>Install App</span>
-          </Button>
-          <Button onClick={() => router.push('/')} variant="outline" size="sm" className="gap-1.5 text-xs bg-white/60 border-white/70 shadow-sm">
+          <Button onClick={() => router.push('/')} variant="outline" size="sm" className="gap-1.5 text-xs bg-white/60 border-white/70 shadow-sm font-semibold">
             <ArrowLeft className="h-3.5 w-3.5" /> Home
           </Button>
         </div>
