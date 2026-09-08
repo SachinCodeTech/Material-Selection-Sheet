@@ -8,11 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, ArrowLeft, FolderOpen, Trash2, Layers, Download, Sparkles } from 'lucide-react';
-import { NavigationFooter } from '@/components/navigation-footer';
-import { PwaInstallDialog } from '@/components/pwa-install-dialog';
+import { Plus, ArrowLeft } from 'lucide-react';
 
 export default function ProjectSelectPage() {
   const router = useRouter();
@@ -21,7 +18,6 @@ export default function ProjectSelectPage() {
   const [companyName] = useLocalStorage<string>('companyName', 'Your Company');
   const [newProjectName, setNewProjectName] = useState('');
   const [selectedProject, setSelectedProject] = useState<string>('');
-  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const { toast } = useToast();
   const [visibleProjects, setVisibleProjects] = useState<Project[]>([]);
 
@@ -33,6 +29,7 @@ export default function ProjectSelectPage() {
     
     // Regular user sees only their own projects
     setVisibleProjects(projects.filter(p => p.owner === currentUser));
+
   }, [projects, currentUser, router]);
 
   const handleCreateProject = () => {
@@ -92,102 +89,54 @@ export default function ProjectSelectPage() {
   };
   
   const handleLogout = () => {
+    // Clear session-based admin auth
     sessionStorage.removeItem('isAdminAuthenticated');
     router.push('/');
-  };
+  }
 
   return (
-    <div className="flex min-h-screen flex-col justify-between">
-      {/* Frosted Glass Header */}
-      <header className="w-full glass-header px-4 py-3 sm:px-8 flex items-center justify-between sticky top-0 z-30">
-        <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2 text-primary font-semibold">
-          <ArrowLeft className="h-4 w-4" />
-          <span>Home</span>
-        </Button>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="glass-badge text-primary text-xs font-mono">
-            User: {currentUser}
-          </Badge>
-        </div>
-      </header>
-
-      {/* Main Glassmorphic Card */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md glass-card rounded-2xl p-6 sm:p-7 space-y-6 shadow-2xl">
-          <div className="space-y-1 text-center pb-1">
-            <div className="p-3 w-fit mx-auto rounded-2xl bg-gradient-to-br from-primary to-[#023b4f] text-primary-foreground shadow-md mb-2">
-              <Layers className="h-6 w-6" />
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
+      <Button onClick={handleLogout} variant="ghost" className="absolute top-4 left-4 text-primary"><ArrowLeft className="mr-2" /> Back to Login</Button>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-primary">Project Management</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-primary">Create New Project</h3>
+            <div className="space-y-2 p-4 border rounded-md">
+              <Input
+                placeholder="Enter new project name"
+                value={newProjectName}
+                onChange={e => setNewProjectName(e.target.value)}
+              />
+              <Button onClick={handleCreateProject} className="w-full"><Plus className="mr-2" /> New Project</Button>
             </div>
-            <h2 className="text-xl font-extrabold text-foreground tracking-tight">Project Management</h2>
-            <p className="text-xs text-muted-foreground">
-              Create a new material schedule or load an existing project for <strong className="text-foreground">{currentUser}</strong>.
-            </p>
           </div>
-
-          <div className="space-y-5">
-            {/* Create Project Section */}
-            <div className="space-y-2">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Create New Project</h3>
-              <div className="space-y-2.5 p-4 rounded-xl border border-white/80 bg-white/50 backdrop-blur-md shadow-sm">
-                <Input
-                  placeholder="Enter project name (e.g., Villa 402, Loft Redesign)"
-                  value={newProjectName}
-                  onChange={e => setNewProjectName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleCreateProject();
-                  }}
-                  className="bg-white/70 border-white/60 shadow-inner"
-                />
-                <Button onClick={handleCreateProject} className="w-full gap-2 font-semibold shadow-md bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4" /> New Project
-                </Button>
-              </div>
-            </div>
-
-            {/* Load Existing Project */}
-            <div className="space-y-2">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Load Existing Project</h3>
-              <div className="space-y-3 p-4 rounded-xl border border-white/80 bg-white/50 backdrop-blur-md shadow-sm">
-                <Label htmlFor="projectList" className="text-xs text-muted-foreground">
-                  {`Select from ${visibleProjects.length} saved project${visibleProjects.length === 1 ? '' : 's'}:`}
-                </Label>
-                <Select onValueChange={setSelectedProject} value={selectedProject}>
-                  <SelectTrigger id="projectList" className="bg-white/70 border-white/60">
-                    <SelectValue placeholder="-- Select Project --" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-panel">
-                    {visibleProjects.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-primary">Load Existing Project</h3>
+            <Label htmlFor="projectList">
+              {`Select Project (${currentUser}'s projects):`}
+            </Label>
+            <Select onValueChange={setSelectedProject} value={selectedProject}>
+              <SelectTrigger id="projectList">
+                <SelectValue placeholder="-- Select Project --" />
+              </SelectTrigger>
+              <SelectContent>
+                {visibleProjects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
                         {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    className="flex-1 gap-1.5 font-semibold"
-                    onClick={handleLoadProject}
-                    disabled={!selectedProject}
-                  >
-                    <FolderOpen className="h-4 w-4" /> Load Project
-                  </Button>
-                  <Button
-                    className="flex-1 gap-1.5"
-                    variant="destructive"
-                    onClick={handleDeleteProject}
-                    disabled={!selectedProject}
-                  >
-                    <Trash2 className="h-4 w-4" /> Delete
-                  </Button>
-                </div>
-              </div>
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleLoadProject} disabled={!selectedProject}>📂 Load Project</Button>
+              <Button className="flex-1" variant="destructive" onClick={handleDeleteProject} disabled={!selectedProject}>🗑 Delete Project</Button>
             </div>
           </div>
-        </div>
-      </main>
-
-      <NavigationFooter />
-      <PwaInstallDialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen} />
-    </div>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

@@ -1,66 +1,52 @@
 'use server';
 
-import { GoogleGenAI, Type } from '@google/genai';
+/**
+ * @fileOverview This file defines a Genkit flow for generating a summary of a section based on the materials and specifications entered by the user.
+ *
+ * - generateSectionSummary -  A function that takes material data as input and returns a summary of the section.
+ * - SectionSummaryInput - The input type for the generateSectionSummary function, which includes the section name and material data.
+ * - SectionSummaryOutput - The output type for the generateSectionSummary function, which includes the summary of the section.
+ */
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
 
-export type SectionSummaryInput = {
-  sectionName: string;
-  materialData: string;
-};
+const SectionSummaryInputSchema = z.object({
+  sectionName: z.string().describe('The name of the section.'),
+  materialData: z.string().describe('JSON string of the materials and specifications entered for the section.'),
+});
+export type SectionSummaryInput = z.infer<typeof SectionSummaryInputSchema>;
 
-export type SectionSummaryOutput = {
-  summary: string;
-};
+const SectionSummaryOutputSchema = z.object({
+  summary: z.string().describe('A brief summary of the section, highlighting key materials and specifications.'),
+});
+export type SectionSummaryOutput = z.infer<typeof SectionSummaryOutputSchema>;
 
-export async function generateSectionSummary(
-  input: SectionSummaryInput
-): Promise<SectionSummaryOutput> {
-  if (!apiKey) {
-    return {
-      summary: `Summary for "${input.sectionName}": Contains specified material entries with dimensions, utility areas, model details, and company specifications.`,
-    };
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-
-  const promptText = `You are an expert architectural assistant. Your job is to summarize a section of an architectural specification sheet.
-
-Section Name: ${input.sectionName}
-Material Data: ${input.materialData}
-
-Please provide a concise summary of the section, highlighting key materials, specifications, and any potential inconsistencies.`;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: promptText,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: {
-              type: Type.STRING,
-              description: 'A brief summary of the section, highlighting key materials and specifications.',
-            },
-          },
-          required: ['summary'],
-        },
-      },
-    });
-
-    if (response.text) {
-      const parsed = JSON.parse(response.text);
-      if (parsed.summary) {
-        return { summary: parsed.summary };
-      }
-    }
-  } catch (error) {
-    console.error('Error generating section summary:', error);
-  }
-
-  return {
-    summary: `Summary for "${input.sectionName}": Contains specified material entries with dimensions, utility areas, model details, and company specifications.`,
-  };
+export async function generateSectionSummary(input: SectionSummaryInput): Promise<SectionSummaryOutput> {
+  return sectionSummaryGeneratorFlow(input);
 }
+
+const prompt = ai.definePrompt({
+  name: 'sectionSummaryPrompt',
+  input: {schema: SectionSummaryInputSchema},
+  output: {schema: SectionSummaryOutputSchema},
+  prompt: `You are an expert architectural assistant.  Your job is to summarize a section of an architectural specification sheet.
+
+  The section name is: {{{sectionName}}}
+  The material data is: {{{materialData}}}
+
+  Please provide a concise summary of the section, highlighting key materials, specifications, and any potential inconsistencies.
+`,
+});
+
+const sectionSummaryGeneratorFlow = ai.defineFlow(
+  {
+    name: 'sectionSummaryGeneratorFlow',
+    inputSchema: SectionSummaryInputSchema,
+    outputSchema: SectionSummaryOutputSchema,
+  },
+  async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }
+);
