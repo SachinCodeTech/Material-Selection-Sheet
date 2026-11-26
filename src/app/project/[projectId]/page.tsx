@@ -41,10 +41,13 @@ import {
   AlertTriangle,
   QrCode,
   GripVertical,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { AiSuggestionsDialog } from '@/components/ai-suggestions-dialog';
 import { SectionSummaryDialog } from '@/components/section-summary-dialog';
 import { NavigationFooter } from '@/components/navigation-footer';
+import { WorkspaceHeader } from '@/components/workspace-header';
 import { ProjectQrDialog } from '@/components/project-qr-dialog';
 
 const DEFAULT_COLUMNS = [
@@ -106,6 +109,8 @@ export default function ProjectPage() {
   const [summarySection, setSummarySection] = useState<Section | null>(null);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  // Section navigation / pagination: 'all' shows every section, or a section ID focuses & pages through sections
+  const [activeSectionId, setActiveSectionId] = useState<'all' | string>('all');
 
   useEffect(() => {
     return () => {
@@ -398,42 +403,74 @@ export default function ProjectPage() {
     );
   }
 
+  const sections = currentProject.sections || [];
+  const activeSectionIndex =
+    activeSectionId === 'all'
+      ? -1
+      : sections.findIndex((s) => s.id === activeSectionId);
+  const effectiveActiveSectionId =
+    activeSectionId !== 'all' && activeSectionIndex === -1 ? 'all' : activeSectionId;
+  const visibleSections =
+    effectiveActiveSectionId === 'all'
+      ? sections
+      : sections.filter((s) => s.id === effectiveActiveSectionId);
+
   return (
     <div className="flex min-h-screen flex-col justify-between bg-slate-50/50">
-      <main id="pdfArea" className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-4">
+      {/* Unified 3-Zone Workspace Navigation Header with Breadcrumbs */}
+      <WorkspaceHeader
+        breadcrumbs={[
+          { label: 'Projects', href: '/projects' },
+          { label: currentProject.name || 'Untitled Project' },
+        ]}
+        rightAction={
+          <Button
+            type="button"
+            onClick={handleLogout}
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs font-semibold min-h-[40px] px-3 whitespace-nowrap shrink-0"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </Button>
+        }
+      />
+
+      <main id="pdfArea" className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-5">
         
-        {/* Project Meta Bar (Project Name & Date) matching reference layout */}
-        <div className="glass-panel p-3.5 sm:p-4 rounded-xl flex items-center justify-between flex-wrap gap-3 sm:gap-4 no-print shadow-sm border border-slate-200/80 bg-white/90">
+        {/* Project Meta Bar (Project Name & Date) */}
+        <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center justify-between flex-wrap gap-3 sm:gap-4 no-print border border-slate-200/80 bg-white/95">
           <div className="flex items-center gap-2.5 sm:gap-3 flex-grow max-w-md">
-            <Label htmlFor="projectName" className="font-bold text-sm sm:text-base text-slate-800 whitespace-nowrap">
-              Project:
+            <Label htmlFor="projectName" className="font-semibold text-sm text-slate-700 whitespace-nowrap">
+              Project
             </Label>
             <Input
               id="projectName"
               value={currentProject.name}
               onChange={e => updateCurrentProject('name', e.target.value)}
-              className="font-bold text-base bg-white border-slate-300 shadow-sm focus-visible:ring-2 focus-visible:ring-primary h-9 sm:h-10"
+              className="font-bold text-base bg-white border-slate-300 shadow-sm focus-visible:ring-2 focus-visible:ring-primary h-10"
               placeholder="01"
             />
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <Label htmlFor="projectDate" className="font-bold text-sm sm:text-base text-slate-800 whitespace-nowrap">
-              Date:
+            <Label htmlFor="projectDate" className="font-semibold text-sm text-slate-700 whitespace-nowrap">
+              Date
             </Label>
             <Input
               id="projectDate"
               type="date"
               value={currentProject.date}
               onChange={e => updateCurrentProject('date', e.target.value)}
-              className="bg-white border-slate-300 shadow-sm text-sm font-medium w-auto min-w-[140px] h-9 sm:h-10"
+              className="bg-white border-slate-300 shadow-sm text-sm font-medium w-auto min-w-[140px] h-10 tabular-nums"
             />
             {/* Auto-save status indicator */}
             <div
-              className={`hidden md:flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border transition-colors ${
+              className={`hidden md:flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors ${
                 saveStatus === 'saving'
-                  ? 'text-sky-700 bg-sky-50 border-sky-200/80'
-                  : 'text-emerald-600 bg-emerald-50 border-emerald-200/60'
+                  ? 'text-primary bg-primary/5 border-primary/20'
+                  : 'text-emerald-700 bg-emerald-50/70 border-emerald-200/70'
               }`}
               title="All edits are stored locally in real-time"
             >
@@ -452,24 +489,24 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        {/* Primary Action Toolbar: + New Section | Save | Export as PDF | A4 v | Projects | QR Code | Share | Logout */}
-        <div className="flex gap-2 sm:gap-2.5 flex-wrap items-center no-print glass-panel p-2.5 sm:p-3 rounded-xl border border-slate-200/80 bg-white/90 shadow-sm">
-          {/* + New Section (Solid Blue) */}
+        {/* Cohesive Primary Action Toolbar */}
+        <div className="flex gap-2 sm:gap-2.5 flex-wrap items-center no-print glass-panel p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 bg-white/95">
+          {/* + New Section (Primary Architectural Teal) */}
           <Button
             size="default"
             onClick={handleAddSection}
-            className="gap-1.5 font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm"
+            className="gap-1.5 font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm h-10 px-4 text-xs sm:text-sm whitespace-nowrap shrink-0"
           >
-            <Plus className="h-4 w-4 stroke-[3]" /> New Section
+            <Plus className="h-4 w-4 stroke-[2.5]" /> New Section
           </Button>
 
-          {/* Save (Solid Blue with subtle pulse & micro Autosaving... indicator that clears after ~1s) */}
+          {/* Save (Primary with subtle pulse & micro Autosaving... indicator that clears after ~1s) */}
           <Button
             size="default"
             onClick={handleSaveSheet}
             disabled={isLoading}
-            className={`gap-1.5 font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm transition-all duration-200 ${
-              isAutosaving ? 'ring-2 ring-sky-300/80 animate-pulse' : ''
+            className={`gap-1.5 font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm h-10 px-4 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-all duration-200 ${
+              isAutosaving ? 'ring-2 ring-primary/35 animate-pulse' : ''
             }`}
           >
             {isLoading ? (
@@ -481,7 +518,7 @@ export default function ProjectPage() {
               <span>Save</span>
               {isAutosaving && (
                 <span
-                  className="text-[9px] font-medium leading-none text-sky-100/95 tracking-tight"
+                  className="text-[9px] font-medium leading-none text-primary-foreground/90 tracking-tight"
                   role="status"
                   aria-live="polite"
                 >
@@ -491,19 +528,25 @@ export default function ProjectPage() {
             </span>
           </Button>
 
-          {/* Export as PDF (Solid Blue with Printer icon) */}
+          <span className="hidden sm:inline-block h-6 w-px bg-border mx-0.5" aria-hidden="true" />
+
+          {/* Export as PDF */}
           <Button
             size="default"
+            variant="outline"
             onClick={exportPDF}
-            className="gap-1.5 font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm"
+            className="gap-1.5 font-semibold bg-white border-slate-300 hover:bg-slate-50 text-slate-800 h-10 px-3.5 text-xs sm:text-sm whitespace-nowrap shrink-0"
           >
-            <Printer className="h-4 w-4" /> Export as PDF
+            <Printer className="h-4 w-4 text-primary" /> Export PDF
           </Button>
 
           {/* Page Format Dropdown (A4, A3, Letter, Legal) */}
           <div className="flex items-center">
             <Select value={pageSize} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="h-10 font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white border-0 shadow-sm w-20 sm:w-24 gap-1 px-2.5 sm:px-3 text-xs sm:text-sm focus:ring-0">
+              <SelectTrigger
+                aria-label="PDF page format"
+                className="h-10 font-semibold bg-white hover:bg-slate-50 text-slate-800 border-slate-300 w-20 sm:w-24 gap-1 px-2.5 sm:px-3 text-xs sm:text-sm"
+              >
                 <SelectValue placeholder="A4" />
               </SelectTrigger>
               <SelectContent className="bg-white border-slate-200">
@@ -516,21 +559,12 @@ export default function ProjectPage() {
             </Select>
           </div>
 
-          {/* Projects (Solid Warm Amber / Orange) */}
-          <Button
-            size="default"
-            onClick={() => router.push('/projects')}
-            className="gap-1.5 font-bold bg-[#f59e0b] hover:bg-[#d97706] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm"
-          >
-            <Folder className="h-4 w-4" /> Projects
-          </Button>
-
           {/* QR Code button for mobile handoff */}
           <Button
             size="default"
             variant="outline"
             onClick={() => setIsQrDialogOpen(true)}
-            className="gap-1.5 font-semibold bg-white border-slate-300 hover:bg-slate-50 text-slate-700 shadow-sm h-10 px-3 text-xs sm:text-sm"
+            className="gap-1.5 font-semibold bg-white border-slate-300 hover:bg-slate-50 text-slate-800 h-10 px-3 text-xs sm:text-sm whitespace-nowrap shrink-0"
             title="Generate QR code to open this project on a mobile device"
           >
             <QrCode className="h-4 w-4 text-primary" />
@@ -542,40 +576,114 @@ export default function ProjectPage() {
             size="default"
             variant="outline"
             onClick={sharePage}
-            className="gap-1.5 font-semibold bg-white border-slate-300 hover:bg-slate-50 text-slate-700 shadow-sm h-10 px-3 hidden sm:inline-flex text-xs sm:text-sm"
+            className="gap-1.5 font-semibold bg-white border-slate-300 hover:bg-slate-50 text-slate-800 h-10 px-3 hidden sm:inline-flex text-xs sm:text-sm whitespace-nowrap shrink-0"
           >
             <Share2 className="h-4 w-4" /> Share
           </Button>
 
-          {/* Logout (Solid Red) */}
+          {/* Back to Projects */}
           <Button
             size="default"
-            onClick={handleLogout}
-            className="gap-1.5 font-bold bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm sm:ml-auto"
+            variant="ghost"
+            onClick={() => router.push('/projects')}
+            className="gap-1.5 font-semibold text-slate-700 hover:text-primary hover:bg-primary/5 h-10 px-3 text-xs sm:text-sm whitespace-nowrap shrink-0 sm:ml-auto"
           >
-            <LogOut className="h-4 w-4" /> Logout
+            <Folder className="h-4 w-4" /> All Projects
           </Button>
         </div>
 
+        {/* Section Navigator & Paginator (Quick Jump + Focus Stepping for multi-section schedules) */}
+        {sections.length > 0 && (
+          <nav
+            aria-label="Project sections"
+            className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/90 border border-slate-200/80 shadow-sm"
+          >
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
+              <button
+                type="button"
+                onClick={() => setActiveSectionId('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors min-h-[34px] ${
+                  effectiveActiveSectionId === 'all'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                All Sections ({sections.length})
+              </button>
+              {sections.map((sec, idx) => {
+                const isSelected = effectiveActiveSectionId === sec.id;
+                return (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => setActiveSectionId(sec.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-colors min-h-[34px] max-w-[180px] truncate ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="tabular-nums mr-1 opacity-75">{idx + 1}.</span>
+                    {sec.name || `Section ${idx + 1}`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {sections.length > 1 && effectiveActiveSectionId !== 'all' && activeSectionIndex >= 0 && (
+              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                <span className="text-xs text-muted-foreground tabular-nums mr-1">
+                  Section {activeSectionIndex + 1} of {sections.length}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={activeSectionIndex <= 0}
+                  onClick={() => setActiveSectionId(sections[activeSectionIndex - 1].id)}
+                  className="h-8 px-2.5 gap-1 text-xs bg-white border-slate-300"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={activeSectionIndex >= sections.length - 1}
+                  onClick={() => setActiveSectionId(sections[activeSectionIndex + 1].id)}
+                  className="h-8 px-2.5 gap-1 text-xs bg-white border-slate-300"
+                >
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </nav>
+        )}
+
         {/* Sections Listing */}
         <div id="sections" className="space-y-6">
-          {currentProject.sections.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-3 shadow-sm">
+          {sections.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center space-y-3 shadow-sm">
               <p className="text-slate-600 font-medium text-sm">No sections created in this project yet.</p>
               <Button onClick={handleAddSection} className="gap-2 bg-primary text-white font-semibold">
                 <Plus className="h-4 w-4" /> Create First Section
               </Button>
             </div>
           ) : (
-            currentProject.sections.map((section, idx) => (
+            visibleSections.map((section) => {
+              const idx = sections.findIndex((s) => s.id === section.id);
+              return (
               <div
                 key={section.id}
-                className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-md printable-section transition-all"
+                className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm printable-section transition-all"
               >
                 {/* Section Header & Sub-toolbar */}
                 <div className="border-b border-slate-200 bg-slate-50/70 p-3.5 sm:p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
+                      <span className="text-xs font-mono font-semibold text-muted-foreground tabular-nums px-1.5">
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
                       <Input
                         value={section.name}
                         onChange={e => updateSection({ ...section, name: e.target.value })}
@@ -633,7 +741,62 @@ export default function ProjectPage() {
                   />
                 </div>
               </div>
-            ))
+              );
+            })
+          )}
+
+          {/* Bottom Section Pagination Controls when focused on a single section */}
+          {sections.length > 1 && effectiveActiveSectionId !== 'all' && activeSectionIndex >= 0 && (
+            <div className="no-print flex items-center justify-between pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={activeSectionIndex <= 0}
+                onClick={() => {
+                  setActiveSectionId(sections[activeSectionIndex - 1].id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="min-h-[40px] px-3.5 gap-1.5 bg-white border-slate-300 text-xs font-semibold"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>
+                  {activeSectionIndex > 0
+                    ? `Prev: ${sections[activeSectionIndex - 1].name || `Section ${activeSectionIndex}`}`
+                    : 'Previous Section'}
+                </span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActiveSectionId('all');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="text-xs font-semibold text-primary"
+              >
+                Show All {sections.length} Sections
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={activeSectionIndex >= sections.length - 1}
+                onClick={() => {
+                  setActiveSectionId(sections[activeSectionIndex + 1].id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="min-h-[40px] px-3.5 gap-1.5 bg-white border-slate-300 text-xs font-semibold"
+              >
+                <span>
+                  {activeSectionIndex < sections.length - 1
+                    ? `Next: ${sections[activeSectionIndex + 1].name || `Section ${activeSectionIndex + 2}`}`
+                    : 'Next Section'}
+                </span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       </main>

@@ -25,6 +25,7 @@ import {
   Monitor,
 } from 'lucide-react';
 import { NavigationFooter } from '@/components/navigation-footer';
+import { WorkspaceHeader } from '@/components/workspace-header';
 import { PwaInstallDialog } from '@/components/pwa-install-dialog';
 
 const FAQ_ITEMS = [
@@ -93,23 +94,7 @@ export default function HelpPage() {
 
   return (
     <div className="flex min-h-screen flex-col justify-between">
-      {/* Frosted Glass Header */}
-      <header className="w-full glass-header px-4 py-3 sm:px-8 flex items-center justify-between sticky top-0 z-30">
-        <Button
-          onClick={() => router.push('/')}
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-primary font-semibold"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Home</span>
-        </Button>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="glass-badge text-primary font-mono text-xs">
-            Help Center
-          </Badge>
-        </div>
-      </header>
+      <WorkspaceHeader breadcrumbs={[{ label: 'Help & FAQs' }]} />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 sm:py-12 space-y-8">
         {/* Header Title */}

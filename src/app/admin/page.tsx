@@ -44,10 +44,13 @@ import {
   Check,
   X,
   RotateCcw,
+  Search,
+  Settings,
 } from 'lucide-react';
 import type { Department, EmployeeProfile, Project, TeamHead } from '@/lib/types';
 import { NavigationFooter } from '@/components/navigation-footer';
-import { PWAInstallButton } from '@/components/pwa-install-button';
+import { WorkspaceHeader } from '@/components/workspace-header';
+import { PaginationBar } from '@/components/pagination-bar';
 
 function computeDefaultPassword(employeeId: string): string {
   const trimmed = employeeId.trim();
@@ -127,6 +130,16 @@ export default function AdminPage() {
   const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeProfile | null>(null);
   const [teamHeadToDelete, setTeamHeadToDelete] = useState<TeamHead | null>(null);
   const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
+
+  // Navigation tab & list pagination/filter state
+  const [activeTab, setActiveTab] = useState<'employees' | 'teams' | 'projects'>('employees');
+  const [empSearch, setEmpSearch] = useState('');
+  const [empDeptFilter, setEmpDeptFilter] = useState<'all' | Department | 'unassigned'>('all');
+  const [empPage, setEmpPage] = useState(1);
+  const [empPageSize, setEmpPageSize] = useState(8);
+  const [projSearch, setProjSearch] = useState('');
+  const [projPage, setProjPage] = useState(1);
+  const [projPageSize, setProjPageSize] = useState(8);
 
   const [companyName, setCompanyName] = useLocalStorage('companyName', '');
   const [newCompanyName, setNewCompanyName] = useState(companyName);
@@ -215,6 +228,57 @@ export default function AdminPage() {
     () => computeDefaultPassword(regEmployeeId),
     [regEmployeeId]
   );
+
+  const filteredEmployees = useMemo(() => {
+    const q = empSearch.trim().toLowerCase();
+    return employees.filter((emp) => {
+      if (empDeptFilter === 'unassigned' && emp.department !== null) return false;
+      if (
+        (empDeptFilter === 'Architecture' || empDeptFilter === 'Interior') &&
+        emp.department !== empDeptFilter
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        emp.id.toLowerCase().includes(q) ||
+        (emp.fullName || '').toLowerCase().includes(q) ||
+        (emp.teamHeadName || '').toLowerCase().includes(q)
+      );
+    });
+  }, [employees, empSearch, empDeptFilter]);
+
+  useEffect(() => {
+    setEmpPage(1);
+  }, [empSearch, empDeptFilter, empPageSize]);
+
+  const empTotalPages = Math.max(1, Math.ceil(filteredEmployees.length / empPageSize));
+  const safeEmpPage = Math.min(empPage, empTotalPages);
+  const paginatedEmployees = useMemo(() => {
+    const start = (safeEmpPage - 1) * empPageSize;
+    return filteredEmployees.slice(start, start + empPageSize);
+  }, [filteredEmployees, safeEmpPage, empPageSize]);
+
+  const filteredAdminProjects = useMemo(() => {
+    const q = projSearch.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.owner || '').toLowerCase().includes(q)
+    );
+  }, [projects, projSearch]);
+
+  useEffect(() => {
+    setProjPage(1);
+  }, [projSearch, projPageSize]);
+
+  const projTotalPages = Math.max(1, Math.ceil(filteredAdminProjects.length / projPageSize));
+  const safeProjPage = Math.min(projPage, projTotalPages);
+  const paginatedAdminProjects = useMemo(() => {
+    const start = (safeProjPage - 1) * projPageSize;
+    return filteredAdminProjects.slice(start, start + projPageSize);
+  }, [filteredAdminProjects, safeProjPage, projPageSize]);
 
   const handleInitialSetup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -788,18 +852,7 @@ export default function AdminPage() {
   if (!isAdminAuthenticated) {
     return (
       <div className="flex min-h-screen flex-col justify-between">
-        <header className="w-full glass-header px-4 py-3 sm:px-8 flex items-center justify-between sticky top-0 z-30">
-          <Button
-            onClick={() => router.push('/')}
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-primary font-semibold min-h-[40px]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Home</span>
-          </Button>
-          <span className="text-xs font-semibold text-primary">Admin Portal</span>
-        </header>
+        <WorkspaceHeader breadcrumbs={[{ label: 'Admin Portal' }]} />
 
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-sm glass-card rounded-2xl p-6 sm:p-7 shadow-2xl space-y-4">
@@ -925,73 +978,132 @@ export default function AdminPage() {
 
   return (
     <div className="flex min-h-screen flex-col justify-between">
-      {/* Header */}
-      <header className="w-full glass-header px-4 py-3 sm:px-8 flex items-center justify-between gap-4 sticky top-0 z-30">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-[#023b4f] text-primary-foreground shadow-sm shrink-0">
-            <Layers className="h-5 w-5" />
-          </div>
-          <h1 className="text-base sm:text-lg font-extrabold text-foreground truncate">
-            Admin Dashboard
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <PWAInstallButton
-            variant="outline"
-            size="sm"
-            className="hidden sm:inline-flex text-xs bg-white/70 border-border text-foreground font-semibold"
-          />
+      {/* Unified 3-Zone Workspace Navigation Header */}
+      <WorkspaceHeader
+        breadcrumbs={[{ label: 'Admin Portal' }]}
+        rightAction={
           <Button
-            onClick={() => router.push('/')}
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs bg-white/70 border-border font-semibold min-h-[40px]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Home
-          </Button>
-          <Button
+            type="button"
             onClick={handleAdminLogout}
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 font-semibold min-h-[40px]"
+            className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 font-semibold min-h-[40px] px-3 whitespace-nowrap shrink-0"
           >
-            <LogOut className="h-3.5 w-3.5" /> Logout
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign Out</span>
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* Page Heading */}
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Admin Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Register employees, organize Architecture & Interior Team Heads, and manage studio projects.
+          </p>
+        </div>
+
         {/* Top Admin Overview Strip */}
         <section className="glass-card rounded-2xl overflow-hidden">
           <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border/70">
-            <div className="p-4 sm:p-5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('employees')}
+              className="p-4 sm:p-5 text-left hover:bg-primary/[0.03] transition-colors"
+            >
               <p className="text-xs font-medium text-muted-foreground">Registered Employees</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums mt-1">
                 {employees.length}
               </p>
-            </div>
-            <div className="p-4 sm:p-5">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('teams')}
+              className="p-4 sm:p-5 text-left hover:bg-primary/[0.03] transition-colors"
+            >
               <p className="text-xs font-medium text-muted-foreground">Architecture Heads</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums mt-1">
                 {architectureHeads.length}
               </p>
-            </div>
-            <div className="p-4 sm:p-5">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('teams')}
+              className="p-4 sm:p-5 text-left hover:bg-primary/[0.03] transition-colors"
+            >
               <p className="text-xs font-medium text-muted-foreground">Interior Heads</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums mt-1">
                 {interiorHeads.length}
               </p>
-            </div>
-            <div className="p-4 sm:p-5">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('projects')}
+              className="p-4 sm:p-5 text-left hover:bg-primary/[0.03] transition-colors"
+            >
               <p className="text-xs font-medium text-muted-foreground">Saved Projects</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums mt-1">
                 {projects.length}
               </p>
-            </div>
+            </button>
           </div>
         </section>
 
+        {/* Admin Section Navigation Tabs */}
+        <div
+          className="flex items-center gap-1 p-1 rounded-xl bg-white/80 border border-border/80 shadow-sm overflow-x-auto"
+          role="tablist"
+          aria-label="Admin sections"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'employees'}
+            onClick={() => setActiveTab('employees')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap shrink-0 transition-colors min-h-[42px] ${
+              activeTab === 'employees'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            <span>Employees ({employees.length})</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'teams'}
+            onClick={() => setActiveTab('teams')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap shrink-0 transition-colors min-h-[42px] ${
+              activeTab === 'teams'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            <span>Teams ({teamHeads.length})</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'projects'}
+            onClick={() => setActiveTab('projects')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap shrink-0 transition-colors min-h-[42px] ${
+              activeTab === 'projects'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            <span>Projects & Settings ({projects.length})</span>
+          </button>
+        </div>
+
         {/* EMPLOYEE REGISTRATION & DIRECTORY (ADMIN-ONLY) */}
+        {activeTab === 'employees' && (
         <section className="glass-card rounded-2xl overflow-hidden">
           <div className="p-5 sm:p-6 border-b border-border/70 space-y-1">
             <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
@@ -1120,14 +1232,57 @@ export default function AdminPage() {
             </div>
           </form>
 
+          {/* Employee Directory Search & Department Filter Toolbar */}
+          <div className="px-5 py-4 sm:px-6 border-b border-border/70 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                aria-label="Search employees"
+                placeholder="Search by employee ID, name, or team head..."
+                value={empSearch}
+                onChange={(e) => setEmpSearch(e.target.value)}
+                className="pl-9 pr-9 h-10 bg-white/90 border-border text-sm"
+              />
+              {empSearch && (
+                <button
+                  type="button"
+                  onClick={() => setEmpSearch('')}
+                  aria-label="Clear employee search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Select
+                value={empDeptFilter}
+                onValueChange={(v) => setEmpDeptFilter(v as 'all' | Department | 'unassigned')}
+              >
+                <SelectTrigger className="h-10 w-44 text-xs bg-white/90 border-border">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="Architecture">Architecture</SelectItem>
+                  <SelectItem value="Interior">Interior</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Registered Employees Directory */}
           <div className="divide-y divide-border/70">
-            {employees.length === 0 ? (
+            {filteredEmployees.length === 0 ? (
               <p className="p-8 text-center text-sm text-muted-foreground">
-                No employees registered yet.
+                {employees.length === 0
+                  ? 'No employees registered yet.'
+                  : 'No employees match your current filter.'}
               </p>
             ) : (
-              employees.map((emp) => {
+              paginatedEmployees.map((emp) => {
                 const deptHeads =
                   emp.department === 'Architecture'
                     ? architectureHeads
@@ -1243,10 +1398,22 @@ export default function AdminPage() {
               })
             )}
           </div>
+
+          <PaginationBar
+            currentPage={safeEmpPage}
+            totalItems={filteredEmployees.length}
+            pageSize={empPageSize}
+            pageSizeOptions={[6, 8, 15, 30]}
+            itemLabel="employees"
+            onPageChange={setEmpPage}
+            onPageSizeChange={setEmpPageSize}
+          />
         </section>
+        )}
 
         {/* TEAM SECTION: ARCHITECTURE & INTERIOR (MAINTAINED BY ADMIN) */}
-        <section className="space-y-3">
+        {activeTab === 'teams' && (
+        <section className="space-y-4">
           <div>
             <h2 className="text-lg font-bold text-foreground">
               Teams — Architecture & Interior
@@ -1277,9 +1444,11 @@ export default function AdminPage() {
             )}
           </div>
         </section>
+        )}
 
         {/* Global Organization Settings & Project Management */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {activeTab === 'projects' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <section className="lg:col-span-1 glass-card rounded-2xl p-5 sm:p-6 space-y-4">
             <div>
               <h2 className="text-base font-bold text-foreground">Organization Settings</h2>
@@ -1310,20 +1479,33 @@ export default function AdminPage() {
           </section>
 
           <section className="lg:col-span-2 glass-card rounded-2xl overflow-hidden">
-            <div className="p-5 sm:p-6 border-b border-border/70">
-              <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
-                <Folder className="h-5 w-5 text-primary" /> Project Management
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                View, launch, or remove any material schedule stored on this device.
-              </p>
+            <div className="p-5 sm:p-6 border-b border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
+                  <Folder className="h-5 w-5 text-primary" /> Project Management
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  View, launch, or remove any material schedule stored on this device.
+                </p>
+              </div>
+              <div className="relative sm:w-56">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  type="search"
+                  aria-label="Filter projects"
+                  placeholder="Filter projects..."
+                  value={projSearch}
+                  onChange={(e) => setProjSearch(e.target.value)}
+                  className="pl-8 h-9 text-xs bg-white/90 border-border"
+                />
+              </div>
             </div>
-            <div className="divide-y divide-border/70 max-h-96 overflow-y-auto">
-              {projects.length > 0 ? (
-                projects.map((project) => (
+            <div className="divide-y divide-border/70">
+              {paginatedAdminProjects.length > 0 ? (
+                paginatedAdminProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="flex items-center justify-between px-5 py-3.5 gap-3"
+                    className="flex items-center justify-between px-5 py-3.5 gap-3 hover:bg-primary/[0.02] transition-colors"
                   >
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-foreground truncate">{project.name}</p>
@@ -1352,13 +1534,23 @@ export default function AdminPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground text-xs py-8 text-center">
-                  No projects stored yet.
+                <p className="text-muted-foreground text-xs py-10 text-center">
+                  {projects.length === 0 ? 'No projects stored yet.' : 'No projects match your filter.'}
                 </p>
               )}
             </div>
+            <PaginationBar
+              currentPage={safeProjPage}
+              totalItems={filteredAdminProjects.length}
+              pageSize={projPageSize}
+              pageSizeOptions={[6, 8, 15, 30]}
+              itemLabel="projects"
+              onPageChange={setProjPage}
+              onPageSizeChange={setProjPageSize}
+            />
           </section>
         </div>
+        )}
       </main>
 
       {/* Delete Employee Confirmation Dialog */}

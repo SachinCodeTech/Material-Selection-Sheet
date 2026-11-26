@@ -25,10 +25,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   Plus,
-  ArrowLeft,
   FolderOpen,
   Trash2,
-  Layers,
   AlertTriangle,
   Search,
   X,
@@ -37,10 +35,13 @@ import {
   FolderKanban,
   FileSpreadsheet,
   ScanLine,
-  UserCog,
+  LogOut,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react';
 import { NavigationFooter } from '@/components/navigation-footer';
-import { PWAInstallButton } from '@/components/pwa-install-button';
+import { WorkspaceHeader } from '@/components/workspace-header';
+import { PaginationBar } from '@/components/pagination-bar';
 import { ProjectQrScannerDialog } from '@/components/project-qr-scanner-dialog';
 
 type SortOption = 'created-desc' | 'created-asc' | 'name-asc' | 'name-desc';
@@ -84,6 +85,9 @@ export default function ProjectSelectPage() {
   const [newProjectName, setNewProjectName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('created-desc');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
   const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const { toast } = useToast();
@@ -173,6 +177,18 @@ export default function ProjectSelectPage() {
       }
     });
   }, [employeeProjects, searchQuery, sortBy]);
+
+  // Reset pagination to page 1 when search, sort, or pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedProjects.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedProjects = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredAndSortedProjects.slice(start, start + pageSize);
+  }, [filteredAndSortedProjects, safeCurrentPage, pageSize]);
 
   const handleCreateProject = () => {
     const trimmedName = newProjectName.trim();
@@ -270,70 +286,49 @@ export default function ProjectSelectPage() {
 
   return (
     <div className="flex min-h-screen flex-col justify-between">
-      {/* Top Bar */}
-      <header className="w-full glass-header px-4 py-3 sm:px-8 flex items-center justify-between gap-4 sticky top-0 z-30">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* Unified 3-Zone Workspace Navigation Header */}
+      <WorkspaceHeader
+        breadcrumbs={[{ label: 'Projects' }]}
+        rightAction={
           <Button
+            type="button"
             onClick={handleLogout}
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-primary font-semibold min-h-[40px] px-2.5 whitespace-nowrap shrink-0"
+            className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs font-semibold min-h-[40px] px-3 whitespace-nowrap shrink-0"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Home</span>
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
           </Button>
-          <span className="hidden sm:inline-block h-4 w-px bg-border" aria-hidden="true" />
-          <div className="hidden sm:flex items-center gap-2 min-w-0">
-            <Layers className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-bold text-sm text-foreground truncate">
-              Project Workspace
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {currentEmployee && (
-            <span className="hidden md:inline text-xs text-muted-foreground truncate max-w-[260px]">
-              <span className="font-mono font-semibold text-foreground">{currentEmployee}</span>
-              {employeeProfile?.department ? ` · ${employeeProfile.department}` : ''}
-              {employeeProfile?.teamHeadName ? ` · ${employeeProfile.teamHeadName}` : ''}
-            </span>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/admin')}
-            className="gap-1.5 bg-white/75 border-border hover:bg-white text-foreground text-xs font-semibold min-h-[40px] px-3 whitespace-nowrap shrink-0"
-          >
-            <UserCog className="h-4 w-4 text-primary" />
-            <span>Admin</span>
-          </Button>
-          <PWAInstallButton
-            variant="outline"
-            size="sm"
-            className="hidden sm:inline-flex bg-white/70 border-border hover:bg-white text-foreground text-xs font-semibold"
-          />
-        </div>
-      </header>
+        }
+      />
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* Page Heading + QR Scanner Action */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* Page Heading + Employee Context + QR Scanner Action */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Projects
             </h1>
             <p className="text-sm text-muted-foreground">
-              Manage architectural material schedules, search saved projects, or scan a project QR code.
+              {currentEmployee ? (
+                <span>
+                  Signed in as{' '}
+                  <span className="font-mono font-semibold text-foreground">{currentEmployee}</span>
+                  {employeeProfile?.department ? ` · ${employeeProfile.department}` : ''}
+                  {employeeProfile?.teamHeadName ? ` · ${employeeProfile.teamHeadName}` : ''}
+                </span>
+              ) : (
+                'Manage architectural material schedules, search saved projects, or scan a project QR code.'
+              )}
             </p>
           </div>
           <Button
             type="button"
             variant="outline"
             onClick={() => setIsQrScannerOpen(true)}
-            className="min-h-[44px] px-4 gap-2 bg-white/85 border-border hover:bg-white text-foreground font-semibold shadow-sm whitespace-nowrap shrink-0 self-start sm:self-auto"
+            className="min-h-[44px] px-4 gap-2 bg-white/90 border-border hover:bg-white text-foreground font-semibold shadow-sm whitespace-nowrap shrink-0 self-start sm:self-auto"
           >
             <ScanLine className="h-4 w-4 text-primary" />
             <span>Scan QR</span>
@@ -481,33 +476,68 @@ export default function ProjectSelectPage() {
                 )}
               </div>
 
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2 sm:w-60 shrink-0">
-                <Select
-                  value={sortBy}
-                  onValueChange={(value) => setSortBy(value as SortOption)}
-                >
-                  <SelectTrigger
-                    aria-label="Sort projects"
-                    className="min-h-[44px] bg-white/80 border-border w-full"
+              {/* Sort Dropdown & View Mode Switcher */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex-1 sm:w-56">
+                  <Select
+                    value={sortBy}
+                    onValueChange={(value) => setSortBy(value as SortOption)}
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <SelectValue placeholder="Sort by" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="glass-panel">
-                    <SelectItem value="created-desc">Date Created (Newest)</SelectItem>
-                    <SelectItem value="created-asc">Date Created (Oldest)</SelectItem>
-                    <SelectItem value="name-asc">Name (A–Z)</SelectItem>
-                    <SelectItem value="name-desc">Name (Z–A)</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <SelectTrigger
+                      aria-label="Sort projects"
+                      className="min-h-[44px] bg-white/80 border-border w-full"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Sort by" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="glass-panel">
+                      <SelectItem value="created-desc">Date Created (Newest)</SelectItem>
+                      <SelectItem value="created-asc">Date Created (Oldest)</SelectItem>
+                      <SelectItem value="name-asc">Name (A–Z)</SelectItem>
+                      <SelectItem value="name-desc">Name (Z–A)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div
+                  className="inline-flex items-center p-1 rounded-lg bg-muted/80 border border-border/70 shrink-0"
+                  role="group"
+                  aria-label="Layout view mode"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    aria-pressed={viewMode === 'list'}
+                    title="List view"
+                    className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                      viewMode === 'list'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <LayoutList className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    aria-pressed={viewMode === 'grid'}
+                    title="Grid view"
+                    className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Project Rows */}
+          {/* Project Rows or Grid Cards */}
           {employeeProjects.length === 0 ? (
             <div className="p-10 sm:p-12 text-center space-y-3">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -543,9 +573,9 @@ export default function ProjectSelectPage() {
                 Clear Search
               </Button>
             </div>
-          ) : (
+          ) : viewMode === 'list' ? (
             <ul className="divide-y divide-border/70" role="list">
-              {filteredAndSortedProjects.map((project) => {
+              {paginatedProjects.map((project) => {
                 const sectionCount = project.sections?.length || 0;
                 const materialCount = (project.sections || []).reduce(
                   (sum, sec) => sum + (sec.materials?.length || 0),
@@ -608,7 +638,76 @@ export default function ProjectSelectPage() {
                 );
               })}
             </ul>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 gap-px bg-border/60">
+              {paginatedProjects.map((project) => {
+                const sectionCount = project.sections?.length || 0;
+                const materialCount = (project.sections || []).reduce(
+                  (sum, sec) => sum + (sec.materials?.length || 0),
+                  0
+                );
+                const createdLabel = formatDisplayDate(project.createdAt || project.date);
+                const modifiedLabel = formatDisplayDate(project.lastModified, true);
+
+                return (
+                  <div
+                    key={project.id}
+                    className="group bg-white/95 p-5 sm:p-6 flex flex-col justify-between gap-4 hover:bg-primary/[0.02] transition-colors"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/project/${project.id}`)}
+                      className="text-left space-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+                    >
+                      <p className="text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                        {project.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        {sectionCount} {sectionCount === 1 ? 'section' : 'sections'} ·{' '}
+                        {materialCount} {materialCount === 1 ? 'material item' : 'material items'}
+                      </p>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        Created {createdLabel} · Modified {modifiedLabel}
+                      </p>
+                    </button>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => router.push(`/project/${project.id}`)}
+                        className="min-h-[40px] px-4 gap-1.5 font-semibold bg-primary hover:bg-primary/90 whitespace-nowrap"
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                        <span>Open Schedule</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setProjectPendingDelete(project)}
+                        aria-label={`Delete ${project.name}`}
+                        className="min-h-[40px] min-w-[40px] px-2.5 text-destructive border-border hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
+
+          {/* Pagination Bar */}
+          <PaginationBar
+            currentPage={safeCurrentPage}
+            totalItems={filteredAndSortedProjects.length}
+            pageSize={pageSize}
+            pageSizeOptions={[6, 8, 12, 24]}
+            itemLabel="projects"
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </section>
       </main>
 
