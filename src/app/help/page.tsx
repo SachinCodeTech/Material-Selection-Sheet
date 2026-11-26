@@ -211,7 +211,7 @@ export default function HelpPage() {
             </p>
           </div>
           <Button asChild className="gap-2 shrink-0 font-semibold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground">
-            <a href="mailto:codetech.appstore@gmail.com?subject=Material%20Selection%20Sheet%20Help%20Request">
+            <a href="mailto:codetech.appstore@gmail.com?subject=Architectural%20Specification%20Suite%20Help%20Request">
               <Mail className="h-4 w-4" />
               Email Support
             </a>

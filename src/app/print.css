@@ -9,7 +9,7 @@
     size: A4 portrait;
     margin: 15mm 10mm 15mm 10mm;
     @bottom-center {
-      content: "MSS-v.1.0 | CodeTech | by Sachin's";
+      content: "v.1.0 | Architectural Specification Suite | CodeTech";
       font-family: 'Inter', sans-serif;
       font-size: 9pt;
       color: #666;

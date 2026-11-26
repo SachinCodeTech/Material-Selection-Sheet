@@ -38,10 +38,10 @@ export default function AboutPage() {
             Architectural Specification Platform
           </Badge>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
-            About Material Selection Sheet
+            About Architectural Specification Suite
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            A comprehensive, digital-first material scheduling and specification platform engineered for architects, interior designers, contractors, and project managers.
+            A comprehensive, digital-first architectural scheduling and material specification platform engineered for architects, interior designers, contractors, and project managers.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export default function AboutPage() {
               </div>
               <div className="flex items-center justify-between py-1.5 border-b border-border/70">
                 <span className="text-muted-foreground">App Suite</span>
-                <span className="font-medium text-foreground">Material Selection Sheet (MSS)</span>
+                <span className="font-medium text-foreground">Architectural Specification Suite</span>
               </div>
               <div className="flex items-center justify-between py-1.5">
                 <span className="text-muted-foreground">Official Contact</span>

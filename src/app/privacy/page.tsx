@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-            This Privacy Policy details how CodeTech, led by Sachin Sheth, safeguards your project specifications, account data, and user preferences within the Material Selection Sheet application.
+            This Privacy Policy details how CodeTech, led by Sachin Sheth, safeguards your project specifications, account data, and user preferences within the Architectural Specification Suite application.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default function PrivacyPolicyPage() {
             </h2>
             <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
               <p>
-                Material Selection Sheet prioritizes privacy and low-latency performance by maintaining all registered user sessions, material schedules, section tables, and custom company names directly within your device's browser <strong className="text-foreground">Local Storage</strong>.
+                Architectural Specification Suite prioritizes privacy and low-latency performance by maintaining all registered user sessions, material schedules, section tables, and custom company names directly within your device's browser <strong className="text-foreground">Local Storage</strong>.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div className="p-3.5 rounded-xl bg-white/60 border border-white/80 text-xs space-y-1 backdrop-blur-sm">

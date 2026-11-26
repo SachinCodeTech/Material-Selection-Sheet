@@ -80,7 +80,7 @@ export function NavigationFooter({ showAdmin = true }: NavigationFooterProps) {
         </div>
 
         <p className="text-xs text-muted-foreground/85 tracking-wide text-center">
-          MSS-v.1.0 | <span className="font-semibold text-foreground/90">CodeTech</span> | by Sachin Sheth
+          v.1.0 | <span className="font-semibold text-foreground/90">Architectural Specification Suite</span> | CodeTech by Sachin Sheth
         </p>
       </footer>
 

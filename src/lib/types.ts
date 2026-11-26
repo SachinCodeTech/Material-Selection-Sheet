@@ -17,6 +17,7 @@ export type Project = {
   id: string;
   name: string;
   companyName: string;
+  createdAt?: string;
   lastModified: string;
   sections: Section[];
   date: string;

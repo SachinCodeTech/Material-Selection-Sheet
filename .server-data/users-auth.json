@@ -1,0 +1,64 @@
+{
+  "users": {
+    "User1": {
+      "salt": "fb590fc3a93cc21660390d501778f20a",
+      "hash": "05a1e22bdd815e5ccab8a8493928dfe6bf732395cadb01dc68d1ffda47f8a00386a05b772ebf6c3b75c1716a761a9b37357e3fc38d9b6258519016207c031ae1",
+      "createdAt": "2026-09-12T08:38:31.797Z",
+      "updatedAt": "2026-09-12T08:38:31.797Z"
+    },
+    "QAGateUser_69347": {
+      "salt": "cb07540bdf0ddc0e129f4cbede0816bf",
+      "hash": "b9371ebb26a4ac67e91d52150370a4699c394f3e438e3bc0162aaf513b7bad07588eb457b7360009a920ac2c5433891935927e9376dadfc8e6834febabaa9155",
+      "createdAt": "2026-09-12T09:03:07.407Z",
+      "updatedAt": "2026-09-12T09:03:07.464Z"
+    },
+    "QAGateUser_45268": {
+      "salt": "2f8778fe51a1c79dd38de55910253eb3",
+      "hash": "34fe9cabdaaf222a524f24ab663379fadfa9b7209ae7258e4a12e03d105be655721b4058e899b3ee5bf2cb70d48f8a1d117435ec387b69e7ed78aac546c1e165",
+      "createdAt": "2026-09-12T09:05:11.230Z",
+      "updatedAt": "2026-09-12T09:05:11.299Z"
+    },
+    "QATester_3995": {
+      "salt": "0503b754ec509f30428b616587307541",
+      "hash": "5a849b2b904bc0d0c0bfffbc7dcf719df9d3d7440eb60b7c5c0bce7026834e66e0b14bd4309c8e3d577efe16c46985f8ddc591cd929e6c8b04e78c6e8aa37d49",
+      "createdAt": "2026-09-12T09:05:24.014Z",
+      "updatedAt": "2026-09-12T09:05:24.104Z"
+    },
+    "QATester_6127": {
+      "salt": "0e334c79945ead9088c201c99b0efaab",
+      "hash": "11b97c8244aa002072690c826f0b90bc8b1a00d1335eb671e8e87f83f415a154166a6367f2dc3e32c6f28983477fae7df6d275acfb7e74b16a01dbaff9571832",
+      "createdAt": "2026-09-12T09:07:57.412Z",
+      "updatedAt": "2026-09-12T09:07:57.530Z"
+    },
+    "QATester_8056": {
+      "salt": "86b0fb007c30de384b3f3c62a93c807e",
+      "hash": "1349cf6cda8d0338d7b80fdad532a9f98ec513fe4e102cf54f2fe1b2a1e7c66fa1e7fe2087aaf0014d3d86899817ee375b182e2d74670025aadead4c8e615556",
+      "createdAt": "2026-09-12T09:08:58.531Z",
+      "updatedAt": "2026-09-12T09:08:58.590Z"
+    },
+    "QATester_1849": {
+      "salt": "3c59d646e61b3a72f1101aacf734c146",
+      "hash": "7084ad738e449e6b4b8a6a0caef357fe412a7533e23641c17d0a9316fe75693de87ccad399836899dc2905650ac03ac6506ef4d842eb1632649d2e6c7f8c1bfc",
+      "createdAt": "2026-09-12T09:10:11.870Z",
+      "updatedAt": "2026-09-12T09:10:11.929Z"
+    },
+    "QATester_1078": {
+      "salt": "2313ca78e152d90802538e660d984de6",
+      "hash": "9ae35a022c0d5fd163d3bb44ba461f0ca07218210324a4294087e3606ccbee68ee48c8b7912f665e6f4b3045c475073e7527edb32fa92f0e55d66c7a64bb2f2a",
+      "createdAt": "2026-09-12T09:22:31.675Z",
+      "updatedAt": "2026-09-12T09:22:31.748Z"
+    },
+    "QATester_1735": {
+      "salt": "44da072f91b43a7c271aed28cd757397",
+      "hash": "e541cfff8b590191567902677d0c29609b144011bf4897fa8bab69aefa357fbc8580101b5d31fe2d76ed20439420a6930814930dba3877127a3f62981ac7aa1f",
+      "createdAt": "2026-11-25T19:24:22.077Z",
+      "updatedAt": "2026-11-25T19:24:22.123Z"
+    },
+    "QATester_5052": {
+      "salt": "088dcc4b3671938a732241723bf6c39c",
+      "hash": "4a7d07f9714fff78430da6c3afee4e15a5edaf1184474606c3d25d0bcc2e6394e526d0425c039960d26d70f85ebe4cb2c22a796610bb3d990d8a1a87f93cd30c",
+      "createdAt": "2026-11-25T19:25:15.085Z",
+      "updatedAt": "2026-11-25T19:25:15.171Z"
+    }
+  }
+}
