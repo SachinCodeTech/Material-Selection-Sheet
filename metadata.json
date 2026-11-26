@@ -3,5 +3,8 @@
   "description": "Professional architectural material specification and scheduling software featuring glassmorphic styling, responsive layout, Gemini AI assistance, and vector PDF exports.",
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "requestFramePermissions": [
+    "camera"
   ]
 }

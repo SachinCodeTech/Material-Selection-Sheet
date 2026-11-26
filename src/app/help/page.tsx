@@ -38,9 +38,9 @@ const FAQ_ITEMS = [
   {
     id: 'item-1',
     category: 'Getting Started',
-    question: 'How do I log in or create a new user profile?',
+    question: 'How do Employees log in or get registered?',
     answer:
-      'Select any User ID from User1 to User150 from the dropdown menu. If you are logging in for the first time, click "Register" to create your password. By default, User1 is initialized with the password "password".',
+      'Employee accounts and teams (Architecture and Interior) are registered and maintained by the Admin inside the Admin Portal. Newly registered employees receive automatic default credentials matching their number (for example, Employee 1 logs in with Password 1, Employee 2 with Password 2) and can change their password anytime from the login screen.',
   },
   {
     id: 'item-2',

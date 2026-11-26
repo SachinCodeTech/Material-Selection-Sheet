@@ -125,8 +125,9 @@ export default function ProjectPage() {
     if (projectId) {
       const project = projects.find(p => p.id === projectId);
       if (project) {
-        // Enforce user isolation: non-owners cannot access other users' projects
-        if (project.owner && project.owner !== currentUser) {
+        // Enforce employee isolation: non-owners cannot access other employees' projects
+        const isLegacyDemoMatch = project.owner === 'User1' && currentUser === 'Employee 1';
+        if (project.owner && project.owner !== currentUser && !isLegacyDemoMatch) {
           toast({
             title: 'Access Restricted',
             description: 'You do not have authorization to view this project specification.',

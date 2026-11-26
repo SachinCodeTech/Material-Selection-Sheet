@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, isValid, parseISO } from 'date-fns';
 import useLocalStorage from '@/hooks/use-local-storage';
-import type { Project } from '@/lib/types';
+import type { EmployeeProfile, Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,9 +36,12 @@ import {
   Clock,
   FolderKanban,
   FileSpreadsheet,
+  ScanLine,
+  UserCog,
 } from 'lucide-react';
 import { NavigationFooter } from '@/components/navigation-footer';
 import { PWAInstallButton } from '@/components/pwa-install-button';
+import { ProjectQrScannerDialog } from '@/components/project-qr-scanner-dialog';
 
 type SortOption = 'created-desc' | 'created-asc' | 'name-asc' | 'name-desc';
 
@@ -75,12 +78,14 @@ function formatDisplayDate(value?: string, includeTime = false): string {
 export default function ProjectSelectPage() {
   const router = useRouter();
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', []);
-  const [currentUser, setCurrentUser] = useLocalStorage<string | null>('currentUser', null);
+  const [currentEmployee, setCurrentEmployee] = useLocalStorage<string | null>('currentUser', null);
+  const [employeeProfile, setEmployeeProfile] = useState<EmployeeProfile | null>(null);
   const [companyName] = useLocalStorage<string>('companyName', 'Your Company');
   const [newProjectName, setNewProjectName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('created-desc');
   const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -88,36 +93,47 @@ export default function ProjectSelectPage() {
     fetch('/api/auth')
       .then((res) => res.json())
       .then((data) => {
-        if (!data.authenticated && !currentUser) {
+        const activeEmp = data.employee || data.user;
+        if (!data.authenticated && !currentEmployee) {
           router.push('/');
-        } else if (data.authenticated && data.user && data.user !== currentUser) {
-          setCurrentUser(data.user);
+        } else if (data.authenticated && activeEmp) {
+          if (activeEmp !== currentEmployee) {
+            setCurrentEmployee(activeEmp);
+          }
+          if (data.employeeProfile) {
+            setEmployeeProfile(data.employeeProfile);
+          }
         }
       })
       .catch(() => {
-        if (!currentUser) router.push('/');
+        if (!currentEmployee) router.push('/');
       });
 
-    if (!currentUser) {
+    if (!currentEmployee) {
       router.push('/');
     }
-  }, [currentUser, router, setCurrentUser]);
+  }, [currentEmployee, router, setCurrentEmployee]);
 
-  // All projects owned by the active user
-  const userProjects = useMemo(
-    () => projects.filter((p) => p.owner === currentUser),
-    [projects, currentUser]
+  // All projects owned by the active employee (also preserves legacy User1 projects under Employee 1)
+  const employeeProjects = useMemo(
+    () =>
+      projects.filter(
+        (p) =>
+          p.owner === currentEmployee ||
+          (currentEmployee === 'Employee 1' && p.owner === 'User1')
+      ),
+    [projects, currentEmployee]
   );
 
   // Summary metrics derived from all owned projects
   const summaryStats = useMemo(() => {
-    const totalCount = userProjects.length;
-    const totalSections = userProjects.reduce((acc, p) => acc + (p.sections?.length || 0), 0);
+    const totalCount = employeeProjects.length;
+    const totalSections = employeeProjects.reduce((acc, p) => acc + (p.sections?.length || 0), 0);
 
     let mostRecentProject: Project | null = null;
     let latestTime = -1;
 
-    for (const project of userProjects) {
+    for (const project of employeeProjects) {
       const modTime = getModifiedTimestamp(project);
       if (modTime > latestTime) {
         latestTime = modTime;
@@ -133,15 +149,15 @@ export default function ProjectSelectPage() {
         ? formatDisplayDate(mostRecentProject.lastModified, true)
         : 'No activity yet',
     };
-  }, [userProjects]);
+  }, [employeeProjects]);
 
   // Filtered by search query and sorted by Name or Date Created
   const filteredAndSortedProjects = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     const filtered = normalizedQuery
-      ? userProjects.filter((p) => p.name.toLowerCase().includes(normalizedQuery))
-      : userProjects;
+      ? employeeProjects.filter((p) => p.name.toLowerCase().includes(normalizedQuery))
+      : employeeProjects;
 
     return [...filtered].sort((a, b) => {
       switch (sortBy) {
@@ -156,7 +172,7 @@ export default function ProjectSelectPage() {
           return getCreatedTimestamp(b) - getCreatedTimestamp(a);
       }
     });
-  }, [userProjects, searchQuery, sortBy]);
+  }, [employeeProjects, searchQuery, sortBy]);
 
   const handleCreateProject = () => {
     const trimmedName = newProjectName.trim();
@@ -165,7 +181,7 @@ export default function ProjectSelectPage() {
       return;
     }
 
-    const isDuplicate = userProjects.some(
+    const isDuplicate = employeeProjects.some(
       (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
     );
 
@@ -187,7 +203,7 @@ export default function ProjectSelectPage() {
       lastModified: nowIso,
       sections: [],
       date: nowIso.split('T')[0],
-      owner: currentUser,
+      owner: currentEmployee,
     };
 
     setProjects([...projects, newProject]);
@@ -207,17 +223,47 @@ export default function ProjectSelectPage() {
     });
   };
 
+  const handleProjectQrResolved = (projectId: string) => {
+    const matched = projects.find((p) => p.id === projectId);
+    if (matched) {
+      const isLegacyDemoMatch = matched.owner === 'User1' && currentEmployee === 'Employee 1';
+      if (matched.owner && matched.owner !== currentEmployee && !isLegacyDemoMatch) {
+        toast({
+          title: 'Access Restricted',
+          description: 'This project belongs to another employee account.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      toast({
+        title: 'Opening Project',
+        description: `Navigating to "${matched.name}"...`,
+      });
+      router.push(`/project/${encodeURIComponent(projectId)}`);
+      return;
+    }
+
+    toast({
+      title: 'Project Not Saved on This Device',
+      description: `No local project matches ID "${projectId}" on this browser yet.`,
+      variant: 'destructive',
+    });
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
         body: JSON.stringify({ action: 'logout' }),
       });
     } catch {
       // Continue offline sign-out
     }
-    setCurrentUser(null);
+    setCurrentEmployee(null);
     sessionStorage.removeItem('isAdminAuthenticated');
     router.push('/');
   };
@@ -245,30 +291,53 @@ export default function ProjectSelectPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          {currentUser && (
-            <span className="text-xs text-muted-foreground font-mono truncate max-w-[140px] sm:max-w-[200px]">
-              {currentUser}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {currentEmployee && (
+            <span className="hidden md:inline text-xs text-muted-foreground truncate max-w-[260px]">
+              <span className="font-mono font-semibold text-foreground">{currentEmployee}</span>
+              {employeeProfile?.department ? ` · ${employeeProfile.department}` : ''}
+              {employeeProfile?.teamHeadName ? ` · ${employeeProfile.teamHeadName}` : ''}
             </span>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/admin')}
+            className="gap-1.5 bg-white/75 border-border hover:bg-white text-foreground text-xs font-semibold min-h-[40px] px-3 whitespace-nowrap shrink-0"
+          >
+            <UserCog className="h-4 w-4 text-primary" />
+            <span>Admin</span>
+          </Button>
           <PWAInstallButton
             variant="outline"
             size="sm"
-            className="bg-white/70 border-border hover:bg-white text-foreground text-xs font-semibold"
+            className="hidden sm:inline-flex bg-white/70 border-border hover:bg-white text-foreground text-xs font-semibold"
           />
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* Page Heading */}
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Projects
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Manage architectural material schedules, search saved projects, or create a new specification.
-          </p>
+        {/* Page Heading + QR Scanner Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Projects
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Manage architectural material schedules, search saved projects, or scan a project QR code.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsQrScannerOpen(true)}
+            className="min-h-[44px] px-4 gap-2 bg-white/85 border-border hover:bg-white text-foreground font-semibold shadow-sm whitespace-nowrap shrink-0 self-start sm:self-auto"
+          >
+            <ScanLine className="h-4 w-4 text-primary" />
+            <span>Scan QR</span>
+          </Button>
         </div>
 
         {/* Summary Card at the Top of Projects Page */}
@@ -380,8 +449,8 @@ export default function ProjectSelectPage() {
               <h2 className="text-base font-bold text-foreground">Existing Projects</h2>
               <p className="text-xs text-muted-foreground tabular-nums">
                 {searchQuery.trim()
-                  ? `Showing ${filteredAndSortedProjects.length} of ${userProjects.length} projects`
-                  : `${userProjects.length} ${userProjects.length === 1 ? 'project' : 'projects'} saved`}
+                  ? `Showing ${filteredAndSortedProjects.length} of ${employeeProjects.length} projects`
+                  : `${employeeProjects.length} ${employeeProjects.length === 1 ? 'project' : 'projects'} saved`}
               </p>
             </div>
 
@@ -439,7 +508,7 @@ export default function ProjectSelectPage() {
           </div>
 
           {/* Project Rows */}
-          {userProjects.length === 0 ? (
+          {employeeProjects.length === 0 ? (
             <div className="p-10 sm:p-12 text-center space-y-3">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <FolderOpen className="h-6 w-6" />
@@ -581,6 +650,12 @@ export default function ProjectSelectPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProjectQrScannerDialog
+        open={isQrScannerOpen}
+        onOpenChange={setIsQrScannerOpen}
+        onProjectResolved={handleProjectQrResolved}
+      />
 
       <NavigationFooter />
     </div>
