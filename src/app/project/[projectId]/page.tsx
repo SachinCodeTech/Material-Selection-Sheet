@@ -39,11 +39,13 @@ import {
   Check,
   PlusCircle,
   AlertTriangle,
+  QrCode,
+  GripVertical,
 } from 'lucide-react';
 import { AiSuggestionsDialog } from '@/components/ai-suggestions-dialog';
 import { SectionSummaryDialog } from '@/components/section-summary-dialog';
 import { NavigationFooter } from '@/components/navigation-footer';
-import html2pdf from 'html2pdf.js';
+import { ProjectQrDialog } from '@/components/project-qr-dialog';
 
 const DEFAULT_COLUMNS = [
   'UTILITY AREA',
@@ -65,6 +67,23 @@ function escapeHtml(str: any): string {
     .replace(/'/g, '&#039;');
 }
 
+function createEmptyMaterial(columns: string[]): Material {
+  const mat: Material = {
+    id: crypto.randomUUID(),
+    'UTILITY AREA': '',
+    'SURFACE AREA': '',
+    'SIZE (MM)': '',
+    'MODEL NAME': '',
+    'COMPANY': '',
+  };
+  columns.forEach((col) => {
+    if (!(col in mat)) {
+      mat[col] = '';
+    }
+  });
+  return mat;
+}
+
 export default function ProjectPage() {
   const params = useParams();
   const projectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
@@ -74,6 +93,8 @@ export default function ProjectPage() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('saved');
+  const [isAutosaving, setIsAutosaving] = useState(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUser] = useLocalStorage<string | null>('currentUser', null);
   const [pageSize, setPageSize] = useState<string>('A4');
 
@@ -84,6 +105,15 @@ export default function ProjectPage() {
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const [summarySection, setSummarySection] = useState<Section | null>(null);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, []);
 
   // Load project initially with strict authorization and isolation
   useEffect(() => {
@@ -124,7 +154,19 @@ export default function ProjectPage() {
     }
   }, [projectId, projects, currentUser, router, toast]);
 
-  // Robust update helper with automatic local sync & save indicator
+  const triggerAutosaveFeedback = useCallback(() => {
+    setIsAutosaving(true);
+    setSaveStatus('saving');
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveTimerRef.current = setTimeout(() => {
+      setIsAutosaving(false);
+      setSaveStatus('saved');
+    }, 1000);
+  }, []);
+
+  // Robust update helper with automatic local sync & 1-second autosave pulse
   const updateCurrentProject = useCallback((field: keyof Project, value: any) => {
     setCurrentProject(prev => {
       if (!prev) return null;
@@ -135,10 +177,10 @@ export default function ProjectPage() {
       };
       // Synchronize immediately to projects storage
       setProjects(all => all.map(p => (p.id === updated.id ? updated : p)));
-      setSaveStatus('saved');
       return updated;
     });
-  }, [setProjects]);
+    triggerAutosaveFeedback();
+  }, [setProjects, triggerAutosaveFeedback]);
 
   const handlePageSizeChange = (newSize: string) => {
     setPageSize(newSize);
@@ -152,13 +194,7 @@ export default function ProjectPage() {
         id: crypto.randomUUID(),
         name: `Section ${currentProject.sections.length + 1}`,
         columns: [...DEFAULT_COLUMNS],
-        materials: Array.from({ length: 4 }, () => {
-          const mat: Material = { id: crypto.randomUUID() };
-          DEFAULT_COLUMNS.forEach(col => {
-            mat[col] = '';
-          });
-          return mat;
-        }),
+        materials: Array.from({ length: 4 }, () => createEmptyMaterial(DEFAULT_COLUMNS)),
       };
       const updatedSections = [...currentProject.sections, newSection];
       updateCurrentProject('sections', updatedSections);
@@ -197,7 +233,7 @@ export default function ProjectPage() {
     }
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!currentProject) return;
 
     toast({ title: `Generating High-Resolution PDF (${pageSize})...` });
@@ -276,8 +312,10 @@ export default function ProjectPage() {
     };
 
     try {
-      if (typeof html2pdf !== 'undefined') {
-        html2pdf()
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+      if (typeof html2pdf === 'function') {
+        await html2pdf()
           .from(pdfContent)
           .set(opt)
           .save()
@@ -390,14 +428,30 @@ export default function ProjectPage() {
               className="bg-white border-slate-300 shadow-sm text-sm font-medium w-auto min-w-[140px] h-9 sm:h-10"
             />
             {/* Auto-save status indicator */}
-            <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/60" title="All edits are stored locally in real-time">
-              <Check className="h-3.5 w-3.5" />
-              <span>Autosaved</span>
+            <div
+              className={`hidden md:flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border transition-colors ${
+                saveStatus === 'saving'
+                  ? 'text-sky-700 bg-sky-50 border-sky-200/80'
+                  : 'text-emerald-600 bg-emerald-50 border-emerald-200/60'
+              }`}
+              title="All edits are stored locally in real-time"
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Autosaving...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Autosaved</span>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Primary Action Toolbar: + New Section | Save | Export as PDF | A4 v | Projects | Logout */}
+        {/* Primary Action Toolbar: + New Section | Save | Export as PDF | A4 v | Projects | QR Code | Share | Logout */}
         <div className="flex gap-2 sm:gap-2.5 flex-wrap items-center no-print glass-panel p-2.5 sm:p-3 rounded-xl border border-slate-200/80 bg-white/90 shadow-sm">
           {/* + New Section (Solid Blue) */}
           <Button
@@ -408,14 +462,32 @@ export default function ProjectPage() {
             <Plus className="h-4 w-4 stroke-[3]" /> New Section
           </Button>
 
-          {/* Save (Solid Blue) */}
+          {/* Save (Solid Blue with subtle pulse & micro Autosaving... indicator that clears after ~1s) */}
           <Button
             size="default"
             onClick={handleSaveSheet}
             disabled={isLoading}
-            className="gap-1.5 font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm"
+            className={`gap-1.5 font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm transition-all duration-200 ${
+              isAutosaving ? 'ring-2 ring-sky-300/80 animate-pulse' : ''
+            }`}
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+            ) : (
+              <Save className="h-4 w-4 shrink-0" />
+            )}
+            <span className="flex flex-col items-start justify-center leading-tight">
+              <span>Save</span>
+              {isAutosaving && (
+                <span
+                  className="text-[9px] font-medium leading-none text-sky-100/95 tracking-tight"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Autosaving...
+                </span>
+              )}
+            </span>
           </Button>
 
           {/* Export as PDF (Solid Blue with Printer icon) */}
@@ -450,6 +522,18 @@ export default function ProjectPage() {
             className="gap-1.5 font-bold bg-[#f59e0b] hover:bg-[#d97706] text-white shadow-sm h-10 px-3.5 sm:px-4 text-xs sm:text-sm"
           >
             <Folder className="h-4 w-4" /> Projects
+          </Button>
+
+          {/* QR Code button for mobile handoff */}
+          <Button
+            size="default"
+            variant="outline"
+            onClick={() => setIsQrDialogOpen(true)}
+            className="gap-1.5 font-semibold bg-white border-slate-300 hover:bg-slate-50 text-slate-700 shadow-sm h-10 px-3 text-xs sm:text-sm"
+            title="Generate QR code to open this project on a mobile device"
+          >
+            <QrCode className="h-4 w-4 text-primary" />
+            <span>QR Code</span>
           </Button>
 
           {/* Share button */}
@@ -595,6 +679,12 @@ export default function ProjectPage() {
           section={summarySection}
         />
       )}
+
+      <ProjectQrDialog
+        open={isQrDialogOpen}
+        onOpenChange={setIsQrDialogOpen}
+        projectName={currentProject.name}
+      />
     </div>
   );
 }
@@ -619,10 +709,7 @@ function SectionControlToolbar({
   const currentColumns = section.columns && section.columns.length > 0 ? section.columns : DEFAULT_COLUMNS;
 
   const handleAddRow = () => {
-    const newMaterial: Material = { id: crypto.randomUUID() };
-    currentColumns.forEach(col => {
-      newMaterial[col] = '';
-    });
+    const newMaterial = createEmptyMaterial(currentColumns);
     onUpdateSection({ ...section, materials: [...section.materials, newMaterial] });
     toast({ title: 'Row added' });
   };
@@ -800,7 +887,7 @@ function SectionControlToolbar({
 }
 
 /**
- * Interactive Material Table with dynamic columns and rows
+ * Interactive Material Table with dynamic columns, rows, and drag-and-drop row reordering
  */
 const MaterialTableComponent = ({
   section,
@@ -813,6 +900,12 @@ const MaterialTableComponent = ({
 }) => {
   const { toast } = useToast();
   const [rowToDelete, setRowToDelete] = useState<string | null>(null);
+  const [draggableRowId, setDraggableRowId] = useState<string | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const touchDraggedIndexRef = useRef<number | null>(null);
+  const touchOverIndexRef = useRef<number | null>(null);
+
   const currentColumns = section.columns && section.columns.length > 0 ? section.columns : DEFAULT_COLUMNS;
 
   const handleMaterialChange = (materialId: string, field: string, value: string) => {
@@ -820,6 +913,96 @@ const MaterialTableComponent = ({
       m.id === materialId ? { ...m, [field]: value } : m
     );
     onUpdateSection({ ...section, materials: updatedMaterials });
+  };
+
+  const reorderRows = (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= section.materials.length ||
+      toIndex >= section.materials.length
+    ) {
+      return;
+    }
+    const updatedMaterials = [...section.materials];
+    const [movedRow] = updatedMaterials.splice(fromIndex, 1);
+    updatedMaterials.splice(toIndex, 0, movedRow);
+    onUpdateSection({ ...section, materials: updatedMaterials });
+  };
+
+  const resetDragState = () => {
+    setDraggableRowId(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    touchDraggedIndexRef.current = null;
+    touchOverIndexRef.current = null;
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    if (draggedIndex === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+      reorderRows(draggedIndex, targetIndex);
+    }
+    resetDragState();
+  };
+
+  const handleTouchStart = (index: number) => {
+    touchDraggedIndexRef.current = index;
+    touchOverIndexRef.current = index;
+    setDraggedIndex(index);
+    setDragOverIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
+    if (touchDraggedIndexRef.current === null) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetRow = targetEl?.closest('tr[data-row-index]') as HTMLElement | null;
+    if (targetRow && targetRow.dataset.sectionId === section.id) {
+      const idx = Number(targetRow.dataset.rowIndex);
+      if (!Number.isNaN(idx) && idx !== touchOverIndexRef.current) {
+        touchOverIndexRef.current = idx;
+        setDragOverIndex(idx);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (
+      touchDraggedIndexRef.current !== null &&
+      touchOverIndexRef.current !== null &&
+      touchDraggedIndexRef.current !== touchOverIndexRef.current
+    ) {
+      reorderRows(touchDraggedIndexRef.current, touchOverIndexRef.current);
+    }
+    resetDragState();
+  };
+
+  const handleHandleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (e.key === 'ArrowUp' && index > 0) {
+      e.preventDefault();
+      reorderRows(index, index - 1);
+    } else if (e.key === 'ArrowDown' && index < section.materials.length - 1) {
+      e.preventDefault();
+      reorderRows(index, index + 1);
+    }
   };
 
   const duplicateRow = (material: Material) => {
@@ -847,10 +1030,7 @@ const MaterialTableComponent = ({
           variant="outline"
           size="sm"
           onClick={() => {
-            const newMaterial: Material = { id: crypto.randomUUID() };
-            currentColumns.forEach(col => {
-              newMaterial[col] = '';
-            });
+            const newMaterial = createEmptyMaterial(currentColumns);
             onUpdateSection({ ...section, materials: [newMaterial] });
           }}
           className="gap-1.5 text-xs bg-white text-primary font-semibold"
@@ -866,6 +1046,12 @@ const MaterialTableComponent = ({
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="bg-slate-100/90 text-primary border-b border-slate-200">
+            <th
+              className="p-2 w-9 min-w-[36px] text-center border-r border-slate-200 no-print"
+              aria-label="Reorder"
+            >
+              <span className="sr-only">Reorder</span>
+            </th>
             {currentColumns.map(header => (
               <th
                 key={header}
@@ -880,55 +1066,94 @@ const MaterialTableComponent = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {section.materials.map(material => (
-            <tr key={material.id} className="hover:bg-sky-50/40 transition-colors">
-              {currentColumns.map(header => {
-                const isNumeric = /size|qty|quantity|dimension|area|mm|rate|price|amount|no/i.test(header);
-                return (
-                  <td key={`${material.id}-${header}`} className="p-1 sm:p-1.5 border-r border-slate-200 last:border-r-0 min-w-[130px] sm:min-w-[150px]">
-                    <Input
-                      className="text-xs h-8 sm:h-9 border-transparent hover:border-slate-300 focus-visible:border-primary focus-visible:ring-1 bg-transparent rounded-md transition-all font-medium text-slate-800 w-full"
-                      value={material[header] || ''}
-                      placeholder={header.toLowerCase()}
-                      inputMode={isNumeric ? 'decimal' : 'text'}
-                      onChange={e => handleMaterialChange(material.id, header, e.target.value)}
-                    />
-                  </td>
-                );
-              })}
-              <td className="p-1 sm:p-1.5 text-center no-print w-24 min-w-[90px]">
-                <div className="flex items-center justify-center gap-0.5 sm:gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-primary hover:bg-primary/10"
-                    onClick={() => onOpenAiSuggestions(material)}
-                    title="Gemini AI Suggestions"
+          {section.materials.map((material, rowIndex) => {
+            const isDragging = draggedIndex === rowIndex;
+            const isDropTarget =
+              draggedIndex !== null && dragOverIndex === rowIndex && draggedIndex !== rowIndex;
+            const dropLineClass = isDropTarget
+              ? draggedIndex < rowIndex
+                ? 'shadow-[inset_0_-2px_0_0_#0284c7] bg-sky-50/70'
+                : 'shadow-[inset_0_2px_0_0_#0284c7] bg-sky-50/70'
+              : '';
+
+            return (
+              <tr
+                key={material.id}
+                data-row-index={rowIndex}
+                data-section-id={section.id}
+                draggable={draggableRowId === material.id}
+                onDragStart={(e) => handleDragStart(e, rowIndex)}
+                onDragOver={(e) => handleDragOver(e, rowIndex)}
+                onDrop={(e) => handleDrop(e, rowIndex)}
+                onDragEnd={resetDragState}
+                className={`transition-colors ${
+                  isDragging ? 'opacity-45 bg-slate-100/80' : 'hover:bg-sky-50/40'
+                } ${dropLineClass}`}
+              >
+                <td className="p-1 text-center border-r border-slate-200 no-print w-9 min-w-[36px]">
+                  <button
+                    type="button"
+                    onMouseDown={() => setDraggableRowId(material.id)}
+                    onMouseUp={() => setDraggableRowId(null)}
+                    onTouchStart={() => handleTouchStart(rowIndex)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onKeyDown={(e) => handleHandleKeyDown(e, rowIndex)}
+                    title="Drag to reorder row (or focus and press Up/Down arrows)"
+                    aria-label={`Reorder row ${rowIndex + 1}`}
+                    className="inline-flex h-8 w-7 items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-grab active:cursor-grabbing touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-slate-600 hover:bg-slate-100"
-                    onClick={() => duplicateRow(material)}
-                    title="Duplicate Row"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                    onClick={() => setRowToDelete(material.id)}
-                    title="Delete Row"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                    <GripVertical className="h-4 w-4" />
+                  </button>
+                </td>
+                {currentColumns.map(header => {
+                  const isNumeric = /size|qty|quantity|dimension|area|mm|rate|price|amount|no/i.test(header);
+                  return (
+                    <td key={`${material.id}-${header}`} className="p-1 sm:p-1.5 border-r border-slate-200 last:border-r-0 min-w-[130px] sm:min-w-[150px]">
+                      <Input
+                        className="text-xs h-8 sm:h-9 border-transparent hover:border-slate-300 focus-visible:border-primary focus-visible:ring-1 bg-transparent rounded-md transition-all font-medium text-slate-800 w-full"
+                        value={material[header] || ''}
+                        placeholder={header.toLowerCase()}
+                        inputMode={isNumeric ? 'decimal' : 'text'}
+                        onChange={e => handleMaterialChange(material.id, header, e.target.value)}
+                      />
+                    </td>
+                  );
+                })}
+                <td className="p-1 sm:p-1.5 text-center no-print w-24 min-w-[90px]">
+                  <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-primary hover:bg-primary/10"
+                      onClick={() => onOpenAiSuggestions(material)}
+                      title="Gemini AI Suggestions"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-slate-600 hover:bg-slate-100"
+                      onClick={() => duplicateRow(material)}
+                      title="Duplicate Row"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                      onClick={() => setRowToDelete(material.id)}
+                      title="Delete Row"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

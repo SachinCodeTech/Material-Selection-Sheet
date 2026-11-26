@@ -5,11 +5,13 @@ export type Material = {
   'SIZE (MM)': string;
   'MODEL NAME': string;
   'COMPANY': string;
+  [key: string]: string | undefined;
 };
 
 export type Section = {
   id: string;
   name: string;
+  columns?: string[];
   materials: Material[];
 };
 
@@ -22,4 +24,5 @@ export type Project = {
   sections: Section[];
   date: string;
   owner: string | null;
+  pageSize?: string;
 };
